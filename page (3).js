@@ -1,65 +1,297 @@
-// Receives a "request a trade" submission.
-//
-// CURRENTLY: validates the input and returns an id. It does NOT save the request
-// or send an email yet, because those need a database and an email service.
-//
-// TO CONNECT (see README):
-//   1. Save the request to a database (e.g., Supabase or Vercel Postgres).
-//   2. Send the "Received" email from your company address (e.g., Resend).
-//   3. Later, when staff change the stage, send the matching email and update the account.
+:root {
+  --black: #07080a;
+  --ink-2: #14161a;
+  --line: #2a2e35;
+  --white: #ffffff;
+  --muted: #a9afb8;
+  --accent-a: #8b5cff;
+  --accent-b: #5ce6e6;
+  --gradient: linear-gradient(90deg, var(--accent-a), var(--accent-b));
+  --wrap: min(100% - 2.5rem, 1160px);
+}
 
-import { trades, services } from "../../../lib/data";
-import { randomUUID } from "crypto";
+* { box-sizing: border-box; }
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+html { scroll-behavior: smooth; }
 
-export async function POST(request) {
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "The form data couldn't be read. Please try again." }, { status: 400 });
-  }
+body {
+  margin: 0;
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--font-archivo), system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
 
-  const name = String(body.name || "").trim();
-  const email = String(body.email || "").trim();
-  const trade = String(body.trade || "").trim();
-  const otherTrade = String(body.otherTrade || "").trim();
-  const location = String(body.location || "").trim();
-  const background = String(body.background || "").trim();
-  const requestedServices = Array.isArray(body.services) ? body.services : [];
-  const validServiceIds = services.map((s) => s.id);
+a { color: inherit; }
 
-  if (!name) return Response.json({ error: "Please enter your name." }, { status: 400 });
-  if (!EMAIL_PATTERN.test(email)) return Response.json({ error: "Please enter a valid email address." }, { status: 400 });
+:focus-visible {
+  outline: 3px solid var(--accent-b);
+  outline-offset: 3px;
+}
 
-  const knownTrade = trades.some((t) => t.slug === trade);
-  if (!knownTrade && trade !== "other") {
-    return Response.json({ error: "Please choose a trade from the list." }, { status: 400 });
-  }
-  if (trade === "other" && !otherTrade) {
-    return Response.json({ error: "Please tell us which trade you want to start." }, { status: 400 });
-  }
+.wrap {
+  width: var(--wrap);
+  margin-inline: auto;
+}
 
-  const cleanServices = requestedServices.filter((id) => validServiceIds.includes(id));
-  if (cleanServices.length === 0) {
-    return Response.json({ error: "Please choose business design, business management, or both." }, { status: 400 });
-  }
+/* Gradient text is the one accent. Used sparingly. */
+.grad {
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 
-  const record = {
-    id: randomUUID(),
-    name,
-    email,
-    trade: knownTrade ? trade : otherTrade,
-    location,
-    services: cleanServices,
-    background,
-    stage: "received",
-    submittedAt: new Date().toISOString(),
-  };
+/* ---------- Header ---------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(7, 8, 10, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.site-header .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-height: 4.5rem;
+}
+.brand { display: inline-flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+.brand img { height: 2.5rem; width: auto; }
+.nav { display: flex; align-items: center; gap: 1.5rem; }
+.nav a {
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.nav a:hover { color: var(--white); }
 
-  // Placeholder: replace with a database insert and a "Received" email.
-  console.log("[request received]", { id: record.id, trade: record.trade, services: record.services });
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-block;
+  padding: 0.85rem 1.4rem;
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.95rem;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  border: 2px solid var(--white);
+  background: var(--white);
+  color: var(--black);
+  transition: transform 150ms ease, opacity 150ms ease;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn-ghost { background: transparent; color: var(--white); }
+.btn-accent {
+  border: none;
+  background: var(--gradient);
+  color: var(--black);
+}
+.btn[disabled] { opacity: 0.4; cursor: not-allowed; transform: none; }
 
-  return Response.json({ ok: true, id: record.id, stage: record.stage, emailSent: false }, { status: 201 });
+/* ---------- Hero ---------- */
+.hero { padding: clamp(4rem, 10vw, 8rem) 0 clamp(3rem, 6vw, 5rem); }
+.hero h1 {
+  font-weight: 900;
+  font-size: clamp(2.8rem, 8vw, 6.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  margin: 0 0 1.5rem;
+  max-width: 12ch;
+}
+.lede {
+  font-size: clamp(1.1rem, 2vw, 1.3rem);
+  color: var(--muted);
+  max-width: 52ch;
+  margin: 0 0 2.25rem;
+}
+.actions { display: flex; flex-wrap: wrap; gap: 0.85rem; }
+
+/* ---------- Sections ---------- */
+.section { padding: clamp(3.5rem, 7vw, 6rem) 0; border-top: 1px solid var(--line); }
+.section-head { max-width: 60ch; margin-bottom: 2.5rem; }
+.section-head h2 {
+  font-weight: 900;
+  font-size: clamp(2rem, 4.5vw, 3.2rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  margin: 0 0 0.9rem;
+}
+.section-head p { margin: 0; color: var(--muted); }
+
+/* ---------- Two paths (home) ---------- */
+.paths {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+}
+.path {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 2rem;
+  background: var(--ink-2);
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: border-color 150ms ease;
+}
+.path:hover { border-color: var(--accent-b); }
+.path h3 { font-weight: 800; font-size: 1.5rem; margin: 0; }
+.path p { margin: 0; color: var(--muted); }
+.path .go { margin-top: auto; font-weight: 800; color: var(--accent-b); }
+
+/* ---------- Trade list ---------- */
+.trade-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+}
+.trade-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1.75rem;
+  background: var(--ink-2);
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.trade-card:hover { border-color: var(--accent-a); }
+.trade-card h3 { font-weight: 800; font-size: 1.5rem; margin: 0; }
+.trade-card p { margin: 0; color: var(--muted); }
+.tag {
+  align-self: flex-start;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.tag-available {
+  border: none;
+  background: var(--gradient);
+  color: var(--black);
+}
+
+/* ---------- Pricing rows ---------- */
+.price-rows { list-style: none; margin: 0; padding: 0; }
+.price-rows li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1.5rem;
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--line);
+}
+.price-rows li:last-child { border-bottom: 1px solid var(--line); }
+.price-rows strong { font-weight: 800; font-size: 1.15rem; }
+.price-rows span { color: var(--muted); font-size: 0.95rem; }
+.price { font-weight: 900; font-size: 1.6rem; white-space: nowrap; }
+
+/* ---------- Trade detail ---------- */
+.crumbs { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.5rem; }
+.crumbs a { text-decoration: none; }
+.crumbs a:hover { color: var(--white); }
+.notice {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent-b);
+  border-radius: 8px;
+  background: var(--ink-2);
+  padding: 1.25rem 1.5rem;
+  color: var(--muted);
+  max-width: 62ch;
+}
+.notice strong { color: var(--white); }
+
+/* ---------- Forms ---------- */
+.form { display: grid; gap: 1.25rem; max-width: 40rem; }
+.field { display: grid; gap: 0.4rem; }
+.field label { font-weight: 800; font-size: 0.95rem; }
+.field .hint { color: var(--muted); font-size: 0.875rem; }
+.field input,
+.field select,
+.field textarea {
+  font: inherit;
+  color: var(--white);
+  background: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.8rem 0.9rem;
+}
+.field textarea { min-height: 7rem; resize: vertical; }
+.field input:focus,
+.field select:focus,
+.field textarea:focus { outline: 2px solid var(--accent-b); outline-offset: 1px; }
+.checks { display: grid; gap: 0.6rem; }
+.checks label {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  font-weight: 600;
+  cursor: pointer;
+}
+.checks small { display: block; color: var(--muted); font-weight: 400; }
+.status-msg { font-weight: 700; }
+.status-msg.ok { color: var(--accent-b); }
+.status-msg.err { color: #ff8a8a; }
+
+/* ---------- Status tracker ---------- */
+.tracker {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+.tracker li {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1rem;
+  background: var(--ink-2);
+  color: var(--muted);
+  font-weight: 800;
+}
+.tracker li.done { color: var(--white); border-color: var(--accent-b); }
+.tracker li.current {
+  color: var(--black);
+  background: var(--gradient);
+  border-color: transparent;
+}
+.tracker small { display: block; font-weight: 400; margin-top: 0.35rem; color: inherit; opacity: 0.85; }
+
+.detail-list { margin: 0; display: grid; gap: 1rem; }
+.detail-list div { border-top: 1px solid var(--line); padding-top: 1rem; }
+.detail-list dt { font-weight: 800; margin-bottom: 0.25rem; }
+.detail-list dd { margin: 0; color: var(--muted); }
+
+/* ---------- Footer ---------- */
+.site-footer {
+  border-top: 1px solid var(--line);
+  padding: 3rem 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.site-footer .wrap { display: grid; gap: 0.8rem; }
+.site-footer img { height: 2.25rem; width: auto; }
+
+/* ---------- Small screens ---------- */
+@media (max-width: 720px) {
+  .nav a:not(.btn) { display: none; }
+  .price-rows li { flex-direction: column; align-items: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  * { transition: none !important; }
 }
